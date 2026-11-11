@@ -1,0 +1,8 @@
+# File mã nguồn gốc chưa mã hóa (giữ bí mật trên máy cá nhân)
+game.js
+index*.html
+!index.html
+
+# File tạm và scratch
+scratch/
+*.log

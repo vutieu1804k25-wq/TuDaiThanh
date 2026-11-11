@@ -1,0 +1,122 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Kiểm tra người dùng đã đăng nhập (Anonymous Auth)
+    function isSignedIn() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    // Kiểm tra người dùng có phải là 1 trong 4 Thành của phòng hay không
+    function isRoomParticipant(roomData) {
+      return isSignedIn() && (
+        (roomData.players.ngo.joined == true && roomData.players.ngo.uid == request.auth.uid) ||
+        (roomData.players.nguy.joined == true && roomData.players.nguy.uid == request.auth.uid) ||
+        (roomData.players.thuc.joined == true && roomData.players.thuc.uid == request.auth.uid) ||
+        (roomData.players.oa.joined == true && roomData.players.oa.uid == request.auth.uid)
+      );
+    }
+
+    // Kiểm tra giới hạn hợp lệ của từng phe (HP từ 0..30, số lệnh tối đa <= 3)
+    function isValidPlayerState(p) {
+      return p.hp is number && p.hp >= 0 && p.hp <= 30 &&
+             p.start_hp is number && p.start_hp >= 0 && p.start_hp <= 30 &&
+             p.actions is list && p.actions.size() <= 3 &&
+             p.name is string && p.name.size() <= 20;
+    }
+
+    function areAllPlayersValid(players) {
+      return isValidPlayerState(players.ngo) &&
+             isValidPlayerState(players.nguy) &&
+             isValidPlayerState(players.thuc) &&
+             isValidPlayerState(players.oa);
+    }
+
+    // Không cho phép người chơi A sửa lệnh (actions) hoặc chiếm uid của người chơi B đang sống trong giai đoạn input
+    function respectsOtherPlayersSeat(oldP, newP) {
+      return (oldP.joined == false) ||
+             (oldP.uid == request.auth.uid) ||
+             (newP.uid == oldP.uid);
+    }
+
+    // Kiểm tra quyền truy cập kênh Mật Thư 1-1 (chỉ đúng 2 Thành trong cặp mới được đọc/ghi)
+    function isChannelParticipant(roomId, channelId) {
+      let room = get(/databases/$(database)/documents/rooms/$(roomId)).data;
+      return isSignedIn() && (
+        (channelId == "ngo_nguy" && (room.players.ngo.uid == request.auth.uid || room.players.nguy.uid == request.auth.uid)) ||
+        (channelId == "ngo_thuc" && (room.players.ngo.uid == request.auth.uid || room.players.thuc.uid == request.auth.uid)) ||
+        (channelId == "ngo_oa"   && (room.players.ngo.uid == request.auth.uid || room.players.oa.uid == request.auth.uid))   ||
+        (channelId == "nguy_thuc"&& (room.players.nguy.uid == request.auth.uid || room.players.thuc.uid == request.auth.uid))||
+        (channelId == "nguy_oa"  && (room.players.nguy.uid == request.auth.uid || room.players.oa.uid == request.auth.uid))  ||
+        (channelId == "thuc_oa"  && (room.players.thuc.uid == request.auth.uid || room.players.oa.uid == request.auth.uid))
+      );
+    }
+
+    match /rooms/{roomId} {
+      // Bắt buộc phải có Anonymous Auth mới được đọc thông tin phòng (chặn gọi REST API không đăng nhập)
+      allow get: if isSignedIn();
+      // Chỉ cho phép truy vấn danh sách phòng khi đang ở trạng thái chờ (waiting) để phục vụ QuickMatch
+      allow list: if isSignedIn() && resource.data.phase == "waiting";
+
+      // Tạo phòng mới: bắt buộc đăng nhập, mã phòng 6 chữ số, khởi tạo ở trạng thái waiting, vòng 1, 30 HP
+      allow create: if isSignedIn()
+                    && roomId.matches('^[0-9]{6}$')
+                    && request.resource.data.phase == "waiting"
+                    && request.resource.data.turn == 1
+                    && request.resource.data.createdBy == request.auth.uid
+                    && areAllPlayersValid(request.resource.data.players);
+
+      // Cập nhật phòng:
+      // 1. Khi phòng đang waiting: cho phép người chơi mới vào ghế trống hoặc cập nhật heartbeat
+      // 2. Khi phòng đang chơi: chỉ thành viên trong phòng (theo request.auth.uid) mới được cập nhật,
+      //    giới hạn tối đa 3 lệnh/lượt (actions.size() <= 3) và HP trong khoảng 0..30
+      allow update: if isSignedIn()
+                    && areAllPlayersValid(request.resource.data.players)
+                    && (
+                      resource.data.phase == "waiting" ||
+                      isRoomParticipant(resource.data)
+                    )
+                    && respectsOtherPlayersSeat(resource.data.players.ngo, request.resource.data.players.ngo)
+                    && respectsOtherPlayersSeat(resource.data.players.nguy, request.resource.data.players.nguy)
+                    && respectsOtherPlayersSeat(resource.data.players.thuc, request.resource.data.players.thuc)
+                    && respectsOtherPlayersSeat(resource.data.players.oa, request.resource.data.players.oa);
+
+      // Xoá phòng: CẤM xoá phòng đang chơi (input / round_play).
+      // Chỉ cho phép dọn dẹp phòng đang ở trạng thái "waiting" (phòng trống hoặc phòng chết quá hạn).
+      allow delete: if isSignedIn() && resource.data.phase == "waiting";
+
+      // ================= SUBCOLLECTION MẬT THƯ RIÊNG TƯ (1-ĐỐI-1) =================
+      match /chats/{channelId} {
+        // Chỉ 2 người chơi thuộc cặp channelId (ví dụ ngo_nguy) mới có quyền đọc và gửi tin nhắn
+        allow read: if isChannelParticipant(roomId, channelId);
+        allow create, update: if isChannelParticipant(roomId, channelId)
+                              && request.resource.data.messages is list
+                              && request.resource.data.messages.size() <= 200;
+        allow delete: if false;
+      }
+    }
+  }
+}
+
+/*
+================================================================================
+CHẾ ĐỘ NÂNG CAO (SERVER-AUTHORITATIVE VỚI CLOUD FUNCTIONS - BLAZE PLAN):
+Nếu bạn chuyển hàm computeRoundResolutionPayload sang Cloud Functions (Admin SDK),
+hãy thay khối `allow update` của `/rooms/{roomId}` bằng quy tắc khóa cứng HP/phase/rankings dưới đây:
+
+allow update: if isSignedIn() && (
+  // Giai đoạn input: người chơi chỉ được phép sửa duy nhất `actions`, `ready`, `client_ts`, `lastSeen` của chính ghế thuộc uid của mình!
+  // Cấm tuyệt đối client tự ý sửa `hp`, `start_hp`, `phase`, `rankings`, `combat_events`.
+  (resource.data.phase == "input"
+   && request.resource.data.phase == "input"
+   && request.resource.data.turn == resource.data.turn
+   && request.resource.data.rankings == resource.data.rankings
+   && request.resource.data.combat_events == resource.data.combat_events
+   && request.resource.data.players.ngo.hp == resource.data.players.ngo.hp
+   && request.resource.data.players.nguy.hp == resource.data.players.nguy.hp
+   && request.resource.data.players.thuc.hp == resource.data.players.thuc.hp
+   && request.resource.data.players.oa.hp == resource.data.players.oa.hp
+   && areAllPlayersValid(request.resource.data.players))
+);
+================================================================================
+*/
