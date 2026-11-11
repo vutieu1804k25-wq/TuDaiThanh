@@ -79,13 +79,13 @@
     <line x1="256" y1="84" x2="256" y2="250" stroke="#090d16" stroke-width="4"/>
   </g>
 
-  <!-- Bottom Badge: 4K / TỨ ĐẠI -->
+  <!-- Bottom Badge: TỨ ĐẠI THÀNH -->
   <g>
-    <rect x="76" y="325" width="360" height="96" rx="18" fill="#0b1329" stroke="#64748b" stroke-width="6"/>
-    <rect x="86" y="335" width="340" height="76" rx="12" fill="none" stroke="#00f2fe" stroke-width="2.5" stroke-opacity="0.7"/>
-    <text x="256" y="394" text-anchor="middle" font-family="'Chakra Petch', sans-serif, system-ui" font-weight="900" font-size="52" letter-spacing="4"
-          fill="url(#favTextMetal)" stroke="#00f2fe" stroke-width="2" filter="url(#favNeon)">
-      4 KINGDOMS
+    <rect x="66" y="325" width="380" height="96" rx="18" fill="#0b1329" stroke="#64748b" stroke-width="6"/>
+    <rect x="76" y="335" width="360" height="76" rx="12" fill="none" stroke="#00f2fe" stroke-width="2.5" stroke-opacity="0.7"/>
+    <text x="256" y="388" text-anchor="middle" font-family="'Chakra Petch', sans-serif, system-ui" font-weight="800" font-size="39" letter-spacing="2"
+          fill="url(#favTextMetal)" stroke="#00f2fe" stroke-width="1.8" filter="url(#favNeon)">
+      TỨ ĐẠI THÀNH
     </text>
   </g>
 </svg>
