@@ -172,7 +172,29 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
                 osc.stop(now + 0.04);
             },
 
-            // 4. Tiếng mật thư 1-1 ("Ting" nhẹ công nghệ bí mật)
+            // 4. Tiếng thông báo nho nhỏ báo hiệu bắt đầu giai đoạn Khai Hỏa (chỉ kêu 1 lần gọn nhẹ đầu pha bắn)
+            playCombatAlert: () => {
+                if (isAudioMuted) return;
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                const now = ctx.currentTime;
+                const notes = [587.33, 783.99]; // Rê - Sol (2 nốt báo hiệu gọn nhẹ, êm tai)
+                notes.forEach((freq, idx) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    const noteTime = now + idx * 0.08;
+                    osc.type = "triangle";
+                    osc.frequency.setValueAtTime(freq, noteTime);
+                    gain.gain.setValueAtTime(0.16, noteTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.18);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(noteTime);
+                    osc.stop(noteTime + 0.19);
+                });
+            },
+
+            // 5. Tiếng mật thư 1-1 ("Ting" nhẹ công nghệ bí mật)
             playPrivateChat: () => {
                 if (isAudioMuted) return;
                 const ctx = getAudioContext();
@@ -3027,6 +3049,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
             clearBattleCanvas();
             const myToken = battleSequenceToken;
             isAnimatingBattle = true;
+            soundEffects.playCombatAlert();
 
             factions.forEach(f => {
                 const p = data.players[f];
