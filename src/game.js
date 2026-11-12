@@ -952,6 +952,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
         }
 
         window.toggleChatPanel = () => {
+            soundEffects.playClick();
             const panel = document.getElementById('private-chat-panel');
             isChatOpen = !isChatOpen;
             panel.style.display = isChatOpen ? 'flex' : 'none';
@@ -968,6 +969,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
         };
 
         window.selectChatPartner = (partnerKey) => {
+            soundEffects.playClick();
             activeChatPartner = partnerKey;
             markChannelAsRead(partnerKey);
             renderPrivateChatUI();
@@ -1197,9 +1199,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
         // ================= GHÉP PHÒNG NHANH (CHỐNG PHÒNG CHẾT, DỌN RÁC TTL, KIỂM TRA HEARTBEAT) =================
         window.quickMatch = async () => {
             if (isBusyLobbyAction) return;
+            soundEffects.playClick();
             isBusyLobbyAction = true;
             const btn = document.getElementById('btn-quick-match');
-            const originalText = btn ? btn.innerText : "⚡ GHÉP PHÒNG NHANH (ONLINE)";
+            const originalText = btn ? btn.innerText : "⚡ GHÉP PHÒNG NHANH";
             if (btn) {
                 btn.disabled = true;
                 btn.innerText = "🔍 ĐANG TÌM ĐẠI THÀNH...";
@@ -1324,6 +1327,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
 
         window.createRoom = async (isPublic = false) => {
             if (isBusyLobbyAction) return;
+            soundEffects.playClick();
             isBusyLobbyAction = true;
             try {
                 const created = await createUniqueRoomWithTransaction(isPublic, null);
@@ -1339,6 +1343,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
 
         window.enterRoom = async () => {
             if (isBusyLobbyAction) return;
+            soundEffects.playClick();
             const rCode = document.getElementById('room-code').value.trim();
             if (!/^\d{6}$/.test(rCode)) return alert("Vui lòng nhập đúng mã phòng 6 số!");
 
@@ -1376,6 +1381,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
 
         window.backToLobbyFromSetup = async () => {
             if (isBusyLobbyAction) return;
+            soundEffects.playClick();
             isBusyLobbyAction = true;
             try {
                 if (unsubscribeRoom) {
@@ -1411,6 +1417,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
 
         window.copyRoomCode = () => {
             if (!currentRoomCode) return;
+            soundEffects.playClick();
             navigator.clipboard?.writeText(currentRoomCode);
             const badge = document.getElementById('wait-room-code');
             if (!badge) return;
@@ -1427,6 +1434,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
         function enterDirectGameScreen(rCode) {
             layoutFortressesAndBoard();
             adjustViewportScale();
+            const submitBtn = document.getElementById('submit-btn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerText = "⏳ ĐANG CHỜ ĐỦ 4 THÀNH";
+            }
             document.getElementById('lobby-screen').style.display = 'none';
             document.getElementById('setup-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'flex';
@@ -1510,6 +1522,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
 
         window.joinGame = async (role) => {
             if (isBusyLobbyAction) return;
+            soundEffects.playClick();
             isBusyLobbyAction = true;
             await ensureAuth();
             const customName = getPlayerCustomName(role);
@@ -1562,6 +1575,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
                 saveActiveSession(currentRoomCode, myRole, customName);
                 layoutFortressesAndBoard();
                 adjustViewportScale();
+                const submitBtn = document.getElementById('submit-btn');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerText = "⏳ ĐANG CHỜ ĐỦ 4 THÀNH";
+                }
                 document.getElementById('setup-screen').style.display = 'none';
                 document.getElementById('game-screen').style.display = 'flex';
                 subscribePrivateChatsForRole(currentRoomCode, myRole);
@@ -1583,17 +1601,20 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
 
         // ================= TÍNH NĂNG NÚT EXIT (BỊ LOẠI 0 HP NGAY LẬP TỨC & DỌN PHÒNG CHỜ TRỐNG) =================
         window.openExitModal = () => {
+            soundEffects.playClick();
             document.getElementById('exit-modal').style.display = 'flex';
         };
 
         window.closeExitModal = () => {
+            soundEffects.playClick();
             document.getElementById('exit-modal').style.display = 'none';
         };
 
         window.confirmExitGame = async () => {
             if (isExitingGame) return;
+            soundEffects.playClick();
             isExitingGame = true;
-            closeExitModal();
+            document.getElementById('exit-modal').style.display = 'none';
             if (!roomRef || !myRole) {
                 isExitingGame = false;
                 leaveFinishedGame();
@@ -1717,6 +1738,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
             isSubmittingActions = false;
             isExitingGame = false;
             isStartingWaitingRoom = false;
+            hasPlayedRoomReadySound = false;
+            lastTickSecond = -1;
             lastDiagramRenderSig = "";
             document.getElementById('private-chat-panel').style.display = 'none';
             seenMsgCounts = {};
@@ -1734,7 +1757,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
             const qBtn = document.getElementById('btn-quick-match');
             if (qBtn) {
                 qBtn.disabled = false;
-                qBtn.innerText = "⚡ GHÉP PHÒNG NHANH (ONLINE)";
+                qBtn.innerText = "⚡ GHÉP PHÒNG NHANH";
             }
         };
 
@@ -1879,7 +1902,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
         }
 
         window.submitActions = async () => {
-            if (isSubmittingActions || !myRole || !roomData || !isPlayerAlive(roomData.players[myRole], "input") || roomData.players[myRole].ready) return;
+            if (isSubmittingActions || !myRole || !roomData || roomData.phase !== "input" || !isPlayerAlive(roomData.players[myRole], "input") || roomData.players[myRole].ready) return;
+            soundEffects.playClick();
             isSubmittingActions = true;
             const submitBtn = document.getElementById('submit-btn');
             if (submitBtn) {
@@ -2055,7 +2079,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
             diagramBtn.classList.toggle('highlight', subPhase === "result" || isEndState);
             rankBtn.style.display = isEndState ? 'inline-block' : 'none';
 
-            if (subPhase === "input") {
+            if (subPhase === "waiting") {
+                svgLayer.style.display = 'none';
+                submitBtn.style.display = 'inline-block';
+                submitBtn.disabled = true;
+                submitBtn.innerText = "⏳ ĐANG CHỜ ĐỦ 4 THÀNH";
+                phaseHint.innerText = "Đang chờ đủ 4 Thành tham gia để bắt đầu...";
+            }
+            else if (subPhase === "input") {
                 svgLayer.style.display = 'block';
                 submitBtn.style.display = 'inline-block';
                 const meAlive = isPlayerAlive(data.players[myRole], "input");
@@ -2284,11 +2315,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
 
         // ================= MODAL SƠ ĐỒ KẾT QUẢ HÌNH THOI 2 CHIỀU =================
         window.openDiagramModal = () => {
+            soundEffects.playClick();
             document.getElementById('diagram-modal').style.display = 'flex';
             renderResultDiagramSVG(true);
         };
 
         window.closeDiagramModal = () => {
+            soundEffects.playClick();
             document.getElementById('diagram-modal').style.display = 'none';
         };
 
