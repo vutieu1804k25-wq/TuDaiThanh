@@ -305,6 +305,9 @@
                 <button id="rank-btn" class="dock-btn" onclick="openEndingModal()" style="display:none; background: var(--accent-purple); box-shadow: 0 3px 0 #5b21b6;">
                     🏆 TỔNG KẾT
                 </button>
+                <button id="rematch-dock-btn" class="dock-btn" onclick="requestOrAgreeRematch()" style="display:none; background: var(--accent-gold); color: #090d16; box-shadow: 0 3px 0 #b45309;">
+                    🔄 CHƠI LẠI
+                </button>
                 <button id="exit-btn" class="dock-btn" onclick="openExitModal()" title="Thoát trận (Chấp nhận bị loại 0 HP)">
                     🚪 EXIT
                 </button>
@@ -350,11 +353,17 @@
                 <div class="winner-name" id="winner-banner-name">---</div>
             </div>
             <div class="rank-list" id="ranking-list-container"></div>
+            <div id="rematch-status-ranking" class="rematch-status-banner" style="display:none;"></div>
+            <div style="display:flex; gap:8px; margin-bottom:8px;">
+                <button id="rematch-ranking-btn" onclick="requestOrAgreeRematch()" style="background:var(--accent-gold); color:#090d16; box-shadow:0 4px 0 #b45309; margin:0;">
+                    🔄 CHƠI LẠI
+                </button>
+            </div>
             <div style="display:flex; gap:8px;">
-                <button onclick="openDiagramModal()" style="background:#334155; box-shadow:0 4px 0 #0f172a;">
+                <button onclick="openDiagramModal()" style="background:#334155; box-shadow:0 4px 0 #0f172a; margin:0;">
                     📊 XEM SƠ ĐỒ CUỐI
                 </button>
-                <button onclick="leaveFinishedGame()" style="background:var(--accent-green); box-shadow:0 4px 0 #047857;">
+                <button onclick="leaveFinishedGame()" style="background:var(--accent-green); box-shadow:0 4px 0 #047857; margin:0;">
                     🏠 VỀ SẢNH CHÍNH
                 </button>
             </div>
@@ -373,11 +382,17 @@
                 Chúc mừng các bạn vì đã chung sống hòa bình với nhau trong suốt 3 vòng chơi vừa rồi. Tất cả mọi người đã bảo toàn số HP vì lựa chọn tin tưởng lẫn nhau. Một lần nữa xin được chúc mừng!
             </div>
             <div class="peace-players-grid" id="peace-players-list"></div>
+            <div id="rematch-status-peace" class="rematch-status-banner" style="display:none;"></div>
+            <div style="display:flex; gap:8px; margin-bottom:8px;">
+                <button id="rematch-peace-btn" onclick="requestOrAgreeRematch()" style="background:var(--accent-gold); color:#090d16; box-shadow:0 4px 0 #b45309; margin:0;">
+                    🔄 CHƠI LẠI
+                </button>
+            </div>
             <div style="display:flex; gap:8px;">
-                <button onclick="openDiagramModal()" style="background:#334155; box-shadow:0 4px 0 #0f172a;">
+                <button onclick="openDiagramModal()" style="background:#334155; box-shadow:0 4px 0 #0f172a; margin:0;">
                     📊 XEM SƠ ĐỒ
                 </button>
-                <button onclick="leaveFinishedGame()" style="background:var(--accent-blue); box-shadow:0 4px 0 #0369a1;">
+                <button onclick="leaveFinishedGame()" style="background:var(--accent-blue); box-shadow:0 4px 0 #0369a1; margin:0;">
                     🏠 VỀ SẢNH CHÍNH
                 </button>
             </div>

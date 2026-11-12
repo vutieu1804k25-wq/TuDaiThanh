@@ -1088,3 +1088,22 @@
             font-weight: 800;
             font-size: 13px;
         }
+
+        /* Hiệu ứng & Banner trạng thái Chơi Lại / Đồng Ý cuối trận */
+        .rematch-status-banner {
+            background: rgba(14, 165, 233, 0.16);
+            border: 1.5px solid #38bdf8;
+            color: #e0f2fe;
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 12px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+        .rematch-agree-pulse {
+            animation: pulseRematchBtn 1.1s infinite;
+        }
+        @keyframes pulseRematchBtn {
+            0%, 100% { filter: brightness(1); transform: scale(1); }
+            50% { filter: brightness(1.15); transform: scale(1.02); }
+        }

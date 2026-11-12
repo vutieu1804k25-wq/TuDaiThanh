@@ -172,104 +172,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
                 osc.stop(now + 0.04);
             },
 
-            // 4. Tiếng đại bác khai hỏa (ĐOÀNG! - Tiếng nổ khí nén + trầm ấm)
-            playCannonShot: () => {
-                if (isAudioMuted) return;
-                const ctx = getAudioContext();
-                if (!ctx) return;
-                const now = ctx.currentTime;
-
-                // Tầng sóng nổ trầm
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = "sawtooth";
-                osc.frequency.setValueAtTime(140, now);
-                osc.frequency.exponentialRampToValueAtTime(28, now + 0.22);
-                gain.gain.setValueAtTime(0.38, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.23);
-
-                // Tầng tiếng ồn xé gió (noise burst)
-                const bufferSize = ctx.sampleRate * 0.14;
-                const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-                const output = noiseBuffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    output[i] = Math.random() * 2 - 1;
-                }
-                const whiteNoise = ctx.createBufferSource();
-                whiteNoise.buffer = noiseBuffer;
-                const filter = ctx.createBiquadFilter();
-                filter.type = "lowpass";
-                filter.frequency.setValueAtTime(800, now);
-                filter.frequency.exponentialRampToValueAtTime(120, now + 0.14);
-                const noiseGain = ctx.createGain();
-                noiseGain.gain.setValueAtTime(0.28, now);
-                noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
-                whiteNoise.connect(filter);
-                filter.connect(noiseGain);
-                noiseGain.connect(ctx.destination);
-                whiteNoise.start(now);
-            },
-
-            // 5. Tiếng khiên kim loại chặn đứng đạn pháo (KENG! - Âm kim loại ngân vang)
-            playShieldBlock: () => {
-                if (isAudioMuted) return;
-                const ctx = getAudioContext();
-                if (!ctx) return;
-                const now = ctx.currentTime;
-                const freqs = [1180, 1560, 2150]; // Hòa âm kim loại
-                freqs.forEach((f, idx) => {
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.type = "sine";
-                    osc.frequency.setValueAtTime(f, now);
-                    osc.frequency.exponentialRampToValueAtTime(f * 0.6, now + 0.35);
-                    const initialVol = 0.28 / (idx + 1);
-                    gain.gain.setValueAtTime(initialVol, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.start(now);
-                    osc.stop(now + 0.36);
-                });
-            },
-
-            // 6. Tiếng đạn nổ phá vỡ tường thành (-3 HP hoặc bị loại)
-            playExplosion: () => {
-                if (isAudioMuted) return;
-                const ctx = getAudioContext();
-                if (!ctx) return;
-                const now = ctx.currentTime;
-                const duration = 0.42;
-
-                const bufferSize = ctx.sampleRate * duration;
-                const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-                const output = noiseBuffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    output[i] = Math.random() * 2 - 1;
-                }
-                const whiteNoise = ctx.createBufferSource();
-                whiteNoise.buffer = noiseBuffer;
-
-                const filter = ctx.createBiquadFilter();
-                filter.type = "lowpass";
-                filter.frequency.setValueAtTime(450, now);
-                filter.frequency.exponentialRampToValueAtTime(60, now + duration);
-
-                const gain = ctx.createGain();
-                gain.gain.setValueAtTime(0.55, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
-                whiteNoise.connect(filter);
-                filter.connect(gain);
-                gain.connect(ctx.destination);
-                whiteNoise.start(now);
-            },
-
-            // 7. Tiếng mật thư 1-1 ("Ting" nhẹ công nghệ bí mật)
+            // 4. Tiếng mật thư 1-1 ("Ting" nhẹ công nghệ bí mật)
             playPrivateChat: () => {
                 if (isAudioMuted) return;
                 const ctx = getAudioContext();
@@ -288,7 +191,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
                 osc.stop(now + 0.26);
             },
 
-            // 8. Tiếng kèn chiến thắng (Top 1)
+            // 5. Tiếng kèn chiến thắng (Top 1)
             playVictory: () => {
                 if (isAudioMuted) return;
                 const ctx = getAudioContext();
@@ -509,6 +412,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
         let isSendingChat = false;
         let lastChatSentAt = 0;
         let isStartingWaitingRoom = false;
+        let isRequestingRematch = false;
+        let wasInEndState = false;
         let copyCodeTimer = null;
         let lastDiagramRenderSig = "";
         let lastTickSecond = -1;
@@ -779,6 +684,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
                 start_hp: MAX_HP,
                 actions: [],
                 ready: false,
+                rematch: false,
                 joined: false,
                 lastSeen: 0,
                 client_ts: 0,
@@ -828,7 +734,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
         }
 
         async function sendPlayerHeartbeat() {
-            if (!roomRef || !myRole || !roomData || roomData.phase === "finished") return;
+            if (!roomRef || !myRole || !roomData) return;
             const now = Date.now();
             try {
                 await updateDoc(roomRef, {
@@ -839,7 +745,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
         }
 
         setInterval(() => {
-            if (roomRef && myRole && roomData && roomData.phase !== "finished") {
+            if (roomRef && myRole && roomData) {
                 sendPlayerHeartbeat();
             }
         }, HEARTBEAT_INTERVAL_MS);
@@ -1602,6 +1508,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
         // ================= TÍNH NĂNG NÚT EXIT (BỊ LOẠI 0 HP NGAY LẬP TỨC & DỌN PHÒNG CHỜ TRỐNG) =================
         window.openExitModal = () => {
             soundEffects.playClick();
+            if (roomData) {
+                const curSub = getComputedSubPhase(roomData, Date.now());
+                if (curSub === "finished" || (curSub === "result" && roomData.will_finish)) {
+                    leaveFinishedGame();
+                    return;
+                }
+            }
             document.getElementById('exit-modal').style.display = 'flex';
         };
 
@@ -1616,6 +1529,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
             isExitingGame = true;
             document.getElementById('exit-modal').style.display = 'none';
             if (!roomRef || !myRole) {
+                isExitingGame = false;
+                leaveFinishedGame();
+                return;
+            }
+
+            if (roomData && (roomData.phase === "finished" || roomData.will_finish)) {
                 isExitingGame = false;
                 leaveFinishedGame();
                 return;
@@ -1657,6 +1576,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
 
                     let players = data.players;
                     let elimSeq = data.eliminated_seq || 0;
+
+                    players[exitingRole].joined = false;
+                    players[exitingRole].rematch = false;
 
                     if (players[exitingRole].hp > 0 || !players[exitingRole].eliminated_order) {
                         players[exitingRole].hp = 0;
@@ -1719,10 +1641,70 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
                 isExitingGame = false;
             }
 
-            leaveFinishedGame();
+            leaveFinishedGame(true);
         };
 
-        window.leaveFinishedGame = () => {
+        window.leaveFinishedGame = (skipServerLeaveUpdate = false) => {
+            soundEffects.playClick();
+            if (!skipServerLeaveUpdate && roomRef && myRole && roomData && roomData.phase !== "waiting") {
+                const leavingRef = roomRef;
+                const leavingRole = myRole;
+                runTransaction(db, async (tx) => {
+                    const snap = await tx.get(leavingRef);
+                    if (!snap.exists()) return;
+                    const data = snap.data();
+                    if (data.phase === "waiting" || !data.players?.[leavingRole]) return;
+                    const now = Date.now();
+                    const players = data.players;
+                    players[leavingRole].joined = false;
+                    players[leavingRole].rematch = false;
+
+                    // Nếu các thành còn lại trong phòng đều đã bấm ĐỒNG Ý chơi lại -> chuyển phòng sang chờ thêm người mới
+                    const activeRoles = factions.filter(f => players[f]?.joined);
+                    const allRemainingAgreed = activeRoles.length > 0 && activeRoles.every(f => players[f]?.rematch);
+                    if (allRemainingAgreed && (data.phase === "finished" || data.will_finish)) {
+                        factions.forEach(f => {
+                            if (players[f]?.joined) {
+                                players[f].hp = MAX_HP;
+                                players[f].start_hp = MAX_HP;
+                                players[f].actions = [];
+                                players[f].ready = false;
+                                players[f].rematch = false;
+                                players[f].client_ts = 0;
+                                players[f].lastSeen = now;
+                                players[f].eliminated_order = 0;
+                                players[f].eliminated_turn = 0;
+                                players[f].eliminated_reason = "";
+                            } else {
+                                players[f] = createDefaultPlayerObj(colorLabels[f]);
+                            }
+                        });
+                        tx.update(leavingRef, {
+                            players: players,
+                            turn: 1,
+                            phase: "waiting",
+                            phase_start_time: null,
+                            combat_duration: 3.2,
+                            eliminated_seq: 0,
+                            peace_streak: 0,
+                            will_finish: false,
+                            finish_type: "normal",
+                            combat_events: [],
+                            rankings: [],
+                            last_result_snapshot: null,
+                            createdAt: now,
+                            updatedAt: now
+                        });
+                    } else {
+                        tx.update(leavingRef, {
+                            [`players.${leavingRole}.joined`]: false,
+                            [`players.${leavingRole}.rematch`]: false,
+                            updatedAt: now
+                        });
+                    }
+                }).catch(() => {});
+            }
+
             if (unsubscribeRoom) {
                 unsubscribeRoom();
                 unsubscribeRoom = null;
@@ -1738,6 +1720,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
             isSubmittingActions = false;
             isExitingGame = false;
             isStartingWaitingRoom = false;
+            isRequestingRematch = false;
+            wasInEndState = false;
             hasPlayedRoomReadySound = false;
             lastTickSecond = -1;
             lastDiagramRenderSig = "";
@@ -2076,8 +2060,31 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
             const svgLayer = document.getElementById('svg-layer');
 
             const isEndState = (subPhase === "finished") || (subPhase === "result" && data.will_finish);
+            if (isEndState) {
+                wasInEndState = true;
+            } else if (wasInEndState) {
+                wasInEndState = false;
+                endingAutoShown = false;
+                lastRenderedTurn = 0;
+                lastAnimatedCombatTurn = 0;
+                lastTickSecond = -1;
+                hasPlayedRoomReadySound = false;
+                isAnimatingBattle = false;
+                myActions = [];
+                clearBattleCanvas();
+                updateActionCounterUI();
+                closeRankingModal();
+                closePeaceModal();
+                closeDiagramModal();
+                if (subPhase === "input") {
+                    hasPlayedRoomReadySound = true;
+                    soundEffects.playRoomReady();
+                }
+            }
+
             diagramBtn.classList.toggle('highlight', subPhase === "result" || isEndState);
             rankBtn.style.display = isEndState ? 'inline-block' : 'none';
+            updateRematchUI(data, isEndState);
 
             if (subPhase === "waiting") {
                 svgLayer.style.display = 'none';
@@ -2270,6 +2277,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
                     <span style="color:#38bdf8">${p.hp} HP</span>
                 </div>`;
             }).join("");
+            updateRematchUI(roomData, true);
             document.getElementById('peace-modal').style.display = 'flex';
         };
 
@@ -2306,11 +2314,170 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
                 </div>`;
             }).join("");
 
+            updateRematchUI(roomData, true);
             document.getElementById('ranking-modal').style.display = 'flex';
         };
 
         window.closeRankingModal = () => {
             document.getElementById('ranking-modal').style.display = 'none';
+        };
+
+        // ================= TÍNH NĂNG CHƠI LẠI & ĐỒNG Ý Ở PHÒNG VỪA RỒI (CHỈ XUẤT HIỆN KHI HẾT TRẬN) =================
+        function updateRematchUI(data, isEndState) {
+            const dockBtn = document.getElementById('rematch-dock-btn');
+            const rankModalBtn = document.getElementById('rematch-ranking-btn');
+            const peaceModalBtn = document.getElementById('rematch-peace-btn');
+            const statusRanking = document.getElementById('rematch-status-ranking');
+            const statusPeace = document.getElementById('rematch-status-peace');
+
+            if (!isEndState || !data || !data.players) {
+                if (dockBtn) dockBtn.style.display = 'none';
+                if (statusRanking) statusRanking.style.display = 'none';
+                if (statusPeace) statusPeace.style.display = 'none';
+                return;
+            }
+
+            if (dockBtn) dockBtn.style.display = 'inline-block';
+
+            const activeRoles = factions.filter(f => data.players[f]?.joined);
+            const totalActive = activeRoles.length || 4;
+            const agreedRoles = activeRoles.filter(f => data.players[f]?.rematch);
+            const agreedCount = agreedRoles.length;
+            const meAgreed = Boolean(myRole && data.players[myRole]?.rematch);
+
+            const buttons = [dockBtn, rankModalBtn, peaceModalBtn].filter(Boolean);
+            const banners = [statusRanking, statusPeace].filter(Boolean);
+
+            if (agreedCount === 0) {
+                banners.forEach(b => { b.style.display = 'none'; });
+                buttons.forEach(btn => {
+                    btn.disabled = isRequestingRematch;
+                    btn.innerText = isRequestingRematch ? "⏳ ĐANG GỬI..." : "🔄 CHƠI LẠI";
+                    btn.style.background = "var(--accent-gold)";
+                    btn.style.color = "#090d16";
+                    btn.style.boxShadow = btn === dockBtn ? "0 3px 0 #b45309" : "0 4px 0 #b45309";
+                    btn.classList.remove('rematch-agree-pulse');
+                });
+            } else {
+                const agreedNames = agreedRoles.map(r => data.players[r]?.name || colorLabels[r]).join(", ");
+                banners.forEach(b => {
+                    b.style.display = 'block';
+                    b.innerText = meAgreed
+                        ? `⏳ Đã đồng ý chơi lại (${agreedCount}/${totalActive}): ${agreedNames} — Đang chờ thành khác...`
+                        : `🔔 ${agreedNames} muốn chơi lại! (${agreedCount}/${totalActive}) — Bấm ĐỒNG Ý để vào ván mới`;
+                });
+
+                if (meAgreed) {
+                    buttons.forEach(btn => {
+                        btn.disabled = true;
+                        btn.innerText = `⏳ ĐÃ ĐỒNG Ý (${agreedCount}/${totalActive})`;
+                        btn.style.background = "#334155";
+                        btn.style.color = "#cbd5e1";
+                        btn.style.boxShadow = btn === dockBtn ? "0 3px 0 #0f172a" : "0 4px 0 #0f172a";
+                        btn.classList.remove('rematch-agree-pulse');
+                    });
+                } else {
+                    buttons.forEach(btn => {
+                        btn.disabled = isRequestingRematch;
+                        btn.innerText = isRequestingRematch ? "⏳ ĐANG ĐỒNG Ý..." : `✅ ĐỒNG Ý (${agreedCount}/${totalActive})`;
+                        btn.style.background = "var(--accent-green)";
+                        btn.style.color = "#ffffff";
+                        btn.style.boxShadow = btn === dockBtn ? "0 3px 0 #047857" : "0 4px 0 #047857";
+                        btn.classList.add('rematch-agree-pulse');
+                    });
+                }
+            }
+        }
+
+        window.requestOrAgreeRematch = async () => {
+            if (isRequestingRematch || !roomRef || !myRole || !roomData) return;
+            const subPhaseNow = getComputedSubPhase(roomData, Date.now());
+            const isEndState = (subPhaseNow === "finished") || (subPhaseNow === "result" && roomData.will_finish);
+            if (!isEndState) return;
+            if (roomData.players?.[myRole]?.rematch) return;
+
+            soundEffects.playClick();
+            isRequestingRematch = true;
+            updateRematchUI(roomData, true);
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const snap = await transaction.get(roomRef);
+                    if (!snap.exists()) return;
+                    const data = snap.data();
+                    const txSub = getComputedSubPhase(data, Date.now());
+                    const txEnd = (txSub === "finished") || (txSub === "result" && data.will_finish) || Boolean(data.will_finish);
+                    if (!txEnd) return;
+
+                    const now = Date.now();
+                    const players = data.players || {};
+                    if (!players[myRole]) return;
+
+                    players[myRole].joined = true;
+                    players[myRole].rematch = true;
+                    players[myRole].lastSeen = now;
+
+                    const activeRoles = factions.filter(f => players[f]?.joined);
+                    const allActiveAgreed = activeRoles.length > 0 && activeRoles.every(f => players[f]?.rematch);
+
+                    if (allActiveAgreed) {
+                        factions.forEach(f => {
+                            if (players[f]?.joined) {
+                                players[f].hp = MAX_HP;
+                                players[f].start_hp = MAX_HP;
+                                players[f].actions = [];
+                                players[f].ready = false;
+                                players[f].rematch = false;
+                                players[f].client_ts = 0;
+                                players[f].lastSeen = now;
+                                players[f].eliminated_order = 0;
+                                players[f].eliminated_turn = 0;
+                                players[f].eliminated_reason = "";
+                            } else {
+                                players[f] = createDefaultPlayerObj(colorLabels[f]);
+                            }
+                        });
+
+                        const isFullFour = (activeRoles.length === 4);
+                        transaction.update(roomRef, {
+                            players: players,
+                            turn: 1,
+                            phase: isFullFour ? "input" : "waiting",
+                            phase_start_time: isFullFour ? now : null,
+                            combat_duration: 3.2,
+                            eliminated_seq: 0,
+                            peace_streak: 0,
+                            will_finish: false,
+                            finish_type: "normal",
+                            combat_events: [],
+                            rankings: [],
+                            last_result_snapshot: null,
+                            createdAt: now,
+                            updatedAt: now
+                        });
+                    } else {
+                        const updates = {
+                            [`players.${myRole}.joined`]: true,
+                            [`players.${myRole}.rematch`]: true,
+                            [`players.${myRole}.lastSeen`]: now,
+                            updatedAt: now
+                        };
+                        if (data.phase !== "finished") {
+                            updates.phase = "finished";
+                        }
+                        transaction.update(roomRef, updates);
+                    }
+                });
+            } catch (e) {
+                console.error("Rematch transaction error:", e);
+            } finally {
+                isRequestingRematch = false;
+                if (roomData) {
+                    const curSub = getComputedSubPhase(roomData, Date.now());
+                    const curEnd = (curSub === "finished") || (curSub === "result" && roomData.will_finish);
+                    updateRematchUI(roomData, curEnd);
+                }
+            }
         };
 
         // ================= MODAL SƠ ĐỒ KẾT QUẢ HÌNH THOI 2 CHIỀU =================
@@ -2643,9 +2810,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
             if (isAdvancingPhase || !roomRef || !roomData || roomData.phase === "finished") return;
             isAdvancingPhase = true;
             try {
-                await updateDoc(roomRef, {
-                    phase: "finished",
-                    updatedAt: Date.now()
+                await runTransaction(db, async (transaction) => {
+                    const snap = await transaction.get(roomRef);
+                    if (!snap.exists()) return;
+                    const fresh = snap.data();
+                    if (fresh.phase === "round_play" && fresh.will_finish) {
+                        transaction.update(roomRef, {
+                            phase: "finished",
+                            updatedAt: Date.now()
+                        });
+                    }
                 });
             } catch (e) {
             } finally {
@@ -2924,7 +3098,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
                     const muzzleX = sPos.x + (dx / dist) * 38;
                     const muzzleY = sPos.y + (dy / dist) * 38;
                     spawnExplosion(muzzleX, muzzleY, factionColors[attacker], 10);
-                    soundEffects.playCannonShot();
 
                     await new Promise(resolveShot => {
                         let settled = false;
@@ -2965,14 +3138,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
                                     if (wall) wall.hitFlash = 8;
                                     spawnExplosion(ix, iy, "#38bdf8", 24);
                                     spawnFloatingDamage(target, "CHẶN ĐỨNG!", "#38bdf8");
-                                    soundEffects.playShieldBlock();
                                 } else {
                                     spawnExplosion(ix, iy, "#ef4444", 32);
                                     triggerBoardShake();
                                     visualHp[target] = ev.newTargetHp;
                                     setFortressHpUI(target, visualHp[target]);
                                     spawnFloatingDamage(target, ev.eliminated ? "💥 BỊ LOẠI (-3 HP)" : "-3 HP", "#ff2a55");
-                                    soundEffects.playExplosion();
                                     // Khi một phe vừa bị bắn hạ (0 HP), lập tức xóa bỏ mọi tường chắn của phe đó trên bàn cờ!
                                     if (ev.eliminated || visualHp[target] <= 0) {
                                         activeWalls = activeWalls.filter(w => w.owner !== target && w.attacker !== target);
