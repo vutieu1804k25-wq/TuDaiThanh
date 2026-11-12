@@ -1,25 +1,25 @@
-# 🏰 TỨ ĐẠI THÀNH – ĐẤU TRƯỜNG PHÁO ĐÀI 3D (4 KINGDOMS)
+# 🏰 TỨ ĐẠI THÀNH
 
 > **Dự án Game Chiến Thuật Thời Gian Thực Đa Nền Tảng (Web / 3D Canvas / Online Multiplayer)**  
-> **Tác giả:** Tiêu Công Nguyên Vũ  
+> **Tác giả kỹ thuật:** Tiêu Công Nguyên Vũ
+> **Nguồn gốc luật chơi** Liar Game - Shinobu Kaitani 
 > **Nền tảng vận hành:** [https://tudaithanh.vercel.app](https://tudaithanh.vercel.app) *(Hỗ trợ nhúng Iframe trực tiếp vào Portal cuộc thi)*
 
 ---
 
 ## 📌 1. Giới thiệu dự án
 
-**Tứ Đại Thành** là tựa game chiến thuật đối kháng 4 người theo lượt (Turn-based Strategy). Mỗi người chơi nắm giữ một Pháo Đài với 30 HP khởi đầu:
-- **Thành Đỏ (Ngọ - Phía Nam)**
-- **Thành Vàng (Ngụy - Phía Tây)**
-- **Thành Trắng (Thục - Phía Bắc)**
-- **Thành Lục (Oa - Phía Đông)**
+**Tứ Đại Thành** là tựa game chiến thuật đối kháng 4 người theo lượt (Turn-based Strategy). Mỗi người chơi nắm giữ một Tòa thành với 30 HP khởi đầu:
+- **Thành Đỏ**
+- **Thành Vàng**
+- **Thành Trắng**
+- **Thành Lục**
 
-Luật chơi mang tính cân não cao giữa các lựa chọn: **Tấn công**, **Phòng thủ**, hoặc **Kêu gọi hòa bình**. Dự án được xây dựng từ niềm đam mê hiện thực hóa một mô hình chiến thuật bàn cờ trên giấy thành một tựa game trực tuyến 3D hoàn chỉnh, hỗ trợ nhiều người chơi tham gia thi đấu cùng lúc trong thời gian thực.
+Luật chơi mang tính chiến lược giữa các lựa chọn: **Tấn công**, **Phòng thủ**, hoặc **Kêu gọi hòa bình**. Dự án được xây dựng từ niềm đam mê hiện thực hóa một mô hình chiến thuật bàn cờ trên trang giấy thành một tựa game trực tuyến hoàn chỉnh, hỗ trợ nhiều người chơi tham gia thi đấu cùng lúc trong thời gian thực.
 
 ---
 
-## 📁 2. Cấu trúc Repository (Dành cho Ban Giám Khảo & Đánh Giá)
-
+## 📁 2. Cấu trúc Repository
 Repository này được tổ chức theo tiêu chuẩn phát triển phần mềm hiện đại, phân tách rõ ràng giữa **Mã nguồn phát triển (Development / Source Code)** và **Bản triển khai tối ưu hóa (Production Build)**:
 
 ```text
@@ -38,7 +38,7 @@ TuDaiThanh/
 └── README.md                             # Tài liệu giới thiệu và hướng dẫn dự án
 ```
 
-> 🔍 **Lưu ý đối với Ban Giám Khảo:**  
+> 🔍 **Lưu ý**  
 > Toàn bộ logic thuật toán, phân giải sát thương, xử lý bất đồng bộ và cơ chế bảo mật nguyên bản được trình bày chi tiết, có chú thích đầy đủ tại thư mục **[`src/`](./src/)** (bao gồm [`src/ui.html`](./src/ui.html) và [`src/game.js`](./src/game.js)).
 
 ---
@@ -76,5 +76,5 @@ Truy cập trực tiếp liên kết hosting game:
 ---
 
 ## 📜 5. Bản quyền & Thông tin tác giả
-- **Tác giả:** Tiêu Công Nguyên Vũ
-- **Bản quyền thuộc về tác giả dự án Tứ Đại Thành.**
+- **Tác giả kỹ thuật:** Tiêu Công Nguyên Vũ
+- **Luật chơi được em tham khảo từ tác phẩm Liar Game, viết bởi tác giả Shinobu Kaitani**
