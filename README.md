@@ -1,10 +1,4 @@
 # 🏰 TỨ ĐẠI THÀNH
-
-> **Dự án Game Chiến Thuật Thời Gian Thực Đa Nền Tảng (Web / 3D Canvas / Online Multiplayer)**  
-> **Tác giả kỹ thuật:** Tiêu Công Nguyên Vũ
-> **Nguồn gốc luật chơi** Liar Game - Shinobu Kaitani 
-> **Nền tảng vận hành:** [https://tudaithanh.vercel.app](https://tudaithanh.vercel.app) *(Hỗ trợ nhúng Iframe trực tiếp vào Portal cuộc thi)*
-
 ---
 
 ## 📌 1. Giới thiệu dự án
