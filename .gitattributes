@@ -1,8 +1,7 @@
-# Đánh dấu thư mục assets là bản build/đóng gói để GitHub không tính dồn dung lượng làm lệch tỷ lệ ngôn ngữ
-assets/index-CrGW0zpE.js linguist-vendored
+# Mặc định bỏ qua mọi file bên ngoài (không tính vào thống kê ngôn ngữ)
+* linguist-vendored
 
-# Xác định rõ ngôn ngữ cho từng file
-src/ui.html linguist-language=HTML
-src/game.js linguist-language=JavaScript
-assets/index-D0Je_Ieh.css linguist-language=CSS
-firestore.rules linguist-language=JavaScript
+# Chỉ tính toán thống kê ngôn ngữ duy nhất dựa trên thư mục src/
+src/ui.html linguist-vendored=false linguist-language=HTML
+src/style.css linguist-vendored=false linguist-language=CSS
+src/game.js linguist-vendored=false linguist-language=JavaScript
