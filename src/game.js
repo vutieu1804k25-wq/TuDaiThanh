@@ -71,6 +71,275 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
         // Khởi tạo Auth ngay khi tải trang
         ensureAuth();
 
+        // ================= HỆ THỐNG ÂM THANH WEB AUDIO API (TỰ TỔNG HỢP 100% BẰNG THUẬT TOÁN) =================
+        let audioCtx = null;
+        let isAudioMuted = false;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) {
+                    audioCtx = new AudioContextClass();
+                }
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume().catch(() => {});
+            }
+            return audioCtx;
+        }
+
+        // Tự động mở khóa AudioContext sau cú click/chạm đầu tiên của người dùng
+        const unlockAudioOnUserAction = () => {
+            getAudioContext();
+            window.removeEventListener('pointerdown', unlockAudioOnUserAction);
+            window.removeEventListener('keydown', unlockAudioOnUserAction);
+        };
+        window.addEventListener('pointerdown', unlockAudioOnUserAction, { once: true });
+        window.addEventListener('keydown', unlockAudioOnUserAction, { once: true });
+
+        window.toggleAudio = () => {
+            isAudioMuted = !isAudioMuted;
+            const btn = document.getElementById('audio-toggle-btn');
+            if (btn) {
+                btn.innerText = isAudioMuted ? '🔇' : '🔊';
+                btn.title = isAudioMuted ? 'Bật Âm Thanh' : 'Tắt Âm Thanh';
+            }
+            if (!isAudioMuted) {
+                getAudioContext();
+                soundEffects.playClick();
+            }
+        };
+
+        const soundEffects = {
+            // 1. Tiếng click nút kim loại / chọn lệnh bàn cờ
+            playClick: () => {
+                if (isAudioMuted) return;
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(650, now);
+                osc.frequency.exponentialRampToValueAtTime(320, now + 0.05);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            },
+
+            // 2. Tiếng chuông báo khi đủ 4 người trong phòng chờ
+            playRoomReady: () => {
+                if (isAudioMuted) return;
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                const now = ctx.currentTime;
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // Đô - Mi - Sol - Đố
+                notes.forEach((freq, idx) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    const noteTime = now + idx * 0.09;
+                    osc.type = "triangle";
+                    osc.frequency.setValueAtTime(freq, noteTime);
+                    gain.gain.setValueAtTime(0.22, noteTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.28);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(noteTime);
+                    osc.stop(noteTime + 0.3);
+                });
+            },
+
+            // 3. Tiếng tích tắc đếm ngược 10 giây cuối giai đoạn Chiến Lược
+            playTick: (isUrgent = false) => {
+                if (isAudioMuted) return;
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = "sine";
+                const freq = isUrgent ? 880 : 540;
+                osc.frequency.setValueAtTime(freq, now);
+                osc.frequency.exponentialRampToValueAtTime(freq * 0.7, now + 0.04);
+                gain.gain.setValueAtTime(isUrgent ? 0.25 : 0.14, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.04);
+            },
+
+            // 4. Tiếng đại bác khai hỏa (ĐOÀNG! - Tiếng nổ khí nén + trầm ấm)
+            playCannonShot: () => {
+                if (isAudioMuted) return;
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                const now = ctx.currentTime;
+
+                // Tầng sóng nổ trầm
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = "sawtooth";
+                osc.frequency.setValueAtTime(140, now);
+                osc.frequency.exponentialRampToValueAtTime(28, now + 0.22);
+                gain.gain.setValueAtTime(0.38, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.23);
+
+                // Tầng tiếng ồn xé gió (noise burst)
+                const bufferSize = ctx.sampleRate * 0.14;
+                const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+                const whiteNoise = ctx.createBufferSource();
+                whiteNoise.buffer = noiseBuffer;
+                const filter = ctx.createBiquadFilter();
+                filter.type = "lowpass";
+                filter.frequency.setValueAtTime(800, now);
+                filter.frequency.exponentialRampToValueAtTime(120, now + 0.14);
+                const noiseGain = ctx.createGain();
+                noiseGain.gain.setValueAtTime(0.28, now);
+                noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+                whiteNoise.connect(filter);
+                filter.connect(noiseGain);
+                noiseGain.connect(ctx.destination);
+                whiteNoise.start(now);
+            },
+
+            // 5. Tiếng khiên kim loại chặn đứng đạn pháo (KENG! - Âm kim loại ngân vang)
+            playShieldBlock: () => {
+                if (isAudioMuted) return;
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                const now = ctx.currentTime;
+                const freqs = [1180, 1560, 2150]; // Hòa âm kim loại
+                freqs.forEach((f, idx) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = "sine";
+                    osc.frequency.setValueAtTime(f, now);
+                    osc.frequency.exponentialRampToValueAtTime(f * 0.6, now + 0.35);
+                    const initialVol = 0.28 / (idx + 1);
+                    gain.gain.setValueAtTime(initialVol, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.36);
+                });
+            },
+
+            // 6. Tiếng đạn nổ phá vỡ tường thành (-3 HP hoặc bị loại)
+            playExplosion: () => {
+                if (isAudioMuted) return;
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                const now = ctx.currentTime;
+                const duration = 0.42;
+
+                const bufferSize = ctx.sampleRate * duration;
+                const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+                const whiteNoise = ctx.createBufferSource();
+                whiteNoise.buffer = noiseBuffer;
+
+                const filter = ctx.createBiquadFilter();
+                filter.type = "lowpass";
+                filter.frequency.setValueAtTime(450, now);
+                filter.frequency.exponentialRampToValueAtTime(60, now + duration);
+
+                const gain = ctx.createGain();
+                gain.gain.setValueAtTime(0.55, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+                whiteNoise.connect(filter);
+                filter.connect(gain);
+                gain.connect(ctx.destination);
+                whiteNoise.start(now);
+            },
+
+            // 7. Tiếng mật thư 1-1 ("Ting" nhẹ công nghệ bí mật)
+            playPrivateChat: () => {
+                if (isAudioMuted) return;
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(880, now);
+                osc.frequency.setValueAtTime(1320, now + 0.08);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.26);
+            },
+
+            // 8. Tiếng kèn chiến thắng (Top 1)
+            playVictory: () => {
+                if (isAudioMuted) return;
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                const now = ctx.currentTime;
+                const notes = [
+                    { f: 523.25, d: 0.14 }, // Đô
+                    { f: 659.25, d: 0.14 }, // Mi
+                    { f: 783.99, d: 0.14 }, // Sol
+                    { f: 1046.50, d: 0.42 } // Đố kéo dài
+                ];
+                let offset = 0;
+                notes.forEach(n => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    const noteTime = now + offset;
+                    osc.type = "triangle";
+                    osc.frequency.setValueAtTime(n.f, noteTime);
+                    gain.gain.setValueAtTime(0.26, noteTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, noteTime + n.d);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(noteTime);
+                    osc.stop(noteTime + n.d + 0.05);
+                    offset += n.d * 0.85;
+                });
+            },
+
+            // 9. Tiếng đàn hòa bình (Hòa 3 vòng)
+            playPeace: () => {
+                if (isAudioMuted) return;
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                const now = ctx.currentTime;
+                const chords = [440, 554.37, 659.25, 830.61]; // Hợp âm A major 7 êm dịu
+                chords.forEach((freq, idx) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    const noteTime = now + idx * 0.12;
+                    osc.type = "sine";
+                    osc.frequency.setValueAtTime(freq, noteTime);
+                    gain.gain.setValueAtTime(0.18, noteTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.7);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(noteTime);
+                    osc.stop(noteTime + 0.75);
+                });
+            }
+        };
+
         // ================= 1. TỰ ĐỘNG CĂN CHỈNH KHUNG HÌNH 100% VỪA KHÍT MỌI MÀN HÌNH =================
         let resizeRafId = null;
         function adjustViewportScale() {
@@ -242,6 +511,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
         let isStartingWaitingRoom = false;
         let copyCodeTimer = null;
         let lastDiagramRenderSig = "";
+        let lastTickSecond = -1;
+        let hasPlayedRoomReadySound = false;
         const lastBoardClickMap = {};
 
         let activeChatPartner = null;
@@ -730,9 +1001,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
 
             const badge = document.getElementById('total-unread-badge');
             if (badge) {
+                const prevCount = parseInt(badge.innerText) || 0;
                 if (totalUnread > 0) {
                     badge.style.display = 'flex';
                     badge.innerText = totalUnread > 9 ? '9+' : totalUnread;
+                    if (totalUnread > prevCount) {
+                        soundEffects.playPrivateChat();
+                    }
                 } else {
                     badge.style.display = 'none';
                 }
@@ -1502,6 +1777,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
                 const timeLeft = Math.max(0, Math.ceil(STRATEGY_DURATION - elapsed));
                 timerBox.innerText = `CHIẾN LƯỢC: ${timeLeft}s`;
 
+                // Đếm ngược 10 giây cuối (tích tắc đanh gọn mỗi giây)
+                if (timeLeft <= 10 && timeLeft > 0 && timeLeft !== lastTickSecond) {
+                    lastTickSecond = timeLeft;
+                    soundEffects.playTick(timeLeft <= 3);
+                }
+
                 if (elapsed >= STRATEGY_DURATION && !roomData.players[myRole].ready && !isSubmittingActions && isPlayerAlive(roomData.players[myRole], "input")) {
                     submitActions();
                 }
@@ -1573,10 +1854,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
             const existingIndex = myActions.findIndex(a => a.target === target && a.type === type);
             if (existingIndex > -1) {
                 myActions.splice(existingIndex, 1);
+                soundEffects.playClick();
             } else {
                 if (myActions.length >= MAX_ACTIONS_PER_TURN) return;
                 myActions.push({ target, type });
                 if (type === 'attack') aimTurret(source, target);
+                soundEffects.playClick();
             }
 
             updateActionCounterUI();
@@ -1693,6 +1976,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
                 document.getElementById('waiting-overlay').style.display = 'flex';
                 let joinedCount = factions.filter(f => data.players[f].joined).length;
                 document.getElementById('wait-count-text').innerText = `${joinedCount}/4`;
+
+                if (joinedCount === 4 && !hasPlayedRoomReadySound) {
+                    hasPlayedRoomReadySound = true;
+                    soundEffects.playRoomReady();
+                }
 
                 if (joinedCount === 4 && myRole === factions[0] && !isStartingWaitingRoom) {
                     isStartingWaitingRoom = true;
@@ -1941,6 +2229,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
 
         window.openPeaceModal = () => {
             if (!roomData) return;
+            soundEffects.playPeace();
             const listEl = document.getElementById('peace-players-list');
             listEl.innerHTML = factions.map(f => {
                 const p = roomData.players[f];
@@ -1959,6 +2248,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
 
         window.openRankingModal = () => {
             if (!roomData) return;
+            soundEffects.playVictory();
             const rankings = (roomData.rankings && roomData.rankings.length === 4)
                 ? roomData.rankings
                 : computeFinalRankings(roomData.players);
@@ -2601,6 +2891,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
                     const muzzleX = sPos.x + (dx / dist) * 38;
                     const muzzleY = sPos.y + (dy / dist) * 38;
                     spawnExplosion(muzzleX, muzzleY, factionColors[attacker], 10);
+                    soundEffects.playCannonShot();
 
                     await new Promise(resolveShot => {
                         let settled = false;
@@ -2641,12 +2932,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
                                     if (wall) wall.hitFlash = 8;
                                     spawnExplosion(ix, iy, "#38bdf8", 24);
                                     spawnFloatingDamage(target, "CHẶN ĐỨNG!", "#38bdf8");
+                                    soundEffects.playShieldBlock();
                                 } else {
                                     spawnExplosion(ix, iy, "#ef4444", 32);
                                     triggerBoardShake();
                                     visualHp[target] = ev.newTargetHp;
                                     setFortressHpUI(target, visualHp[target]);
                                     spawnFloatingDamage(target, ev.eliminated ? "💥 BỊ LOẠI (-3 HP)" : "-3 HP", "#ff2a55");
+                                    soundEffects.playExplosion();
                                     // Khi một phe vừa bị bắn hạ (0 HP), lập tức xóa bỏ mọi tường chắn của phe đó trên bàn cờ!
                                     if (ev.eliminated || visualHp[target] <= 0) {
                                         activeWalls = activeWalls.filter(w => w.owner !== target && w.attacker !== target);
