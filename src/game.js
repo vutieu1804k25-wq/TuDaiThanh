@@ -246,7 +246,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
         // ================= 1. TỰ ĐỘNG CĂN CHỈNH KHUNG HÌNH 100% VỪA KHÍT MỌI MÀN HÌNH =================
         let resizeRafId = null;
         function adjustViewportScale() {
-            const baseWidth = 684;
+            const dockEl = document.getElementById('bottom-control-dock');
+            const dockW = dockEl ? dockEl.offsetWidth : 660;
+            const baseWidth = Math.max(684, dockW + 24);
             const baseHeight = 768;
             const scaleX = window.innerWidth / baseWidth;
             const scaleY = window.innerHeight / baseHeight;
@@ -971,7 +973,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
             }
 
             const presetsBar = document.getElementById('chat-presets-bar');
-            const thirdParties = others.filter(k => k !== activeChatPartner && isPlayerAlive(roomData.players[k], "input"));
+            const thirdParties = others.filter(k => k !== activeChatPartner);
             let presets = [];
 
             thirdParties.forEach(tp => {
@@ -979,9 +981,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
                 presets.push(`Tấn công ${tpName}`);
                 presets.push(`Phòng thủ ${tpName}`);
             });
-            if (isPlayerAlive(roomData.players[activeChatPartner], "input")) {
-                presets.push(`Phòng thủ ${partnerName}`);
-            }
             presets.push(`Hòa bình nhé!`);
             presets.push(`Đừng bắn tôi!`);
             presets.push(`Hợp tác cùng thắng!`);
@@ -2331,13 +2330,20 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
             const statusPeace = document.getElementById('rematch-status-peace');
 
             if (!isEndState || !data || !data.players) {
-                if (dockBtn) dockBtn.style.display = 'none';
+                if (dockBtn && dockBtn.style.display !== 'none') {
+                    dockBtn.style.display = 'none';
+                    adjustViewportScale();
+                }
                 if (statusRanking) statusRanking.style.display = 'none';
                 if (statusPeace) statusPeace.style.display = 'none';
                 return;
             }
 
-            if (dockBtn) dockBtn.style.display = 'inline-block';
+            let dockChanged = false;
+            if (dockBtn && dockBtn.style.display !== 'inline-block') {
+                dockBtn.style.display = 'inline-block';
+                dockChanged = true;
+            }
 
             const activeRoles = factions.filter(f => data.players[f]?.joined);
             const totalActive = activeRoles.length || 4;
@@ -2386,6 +2392,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
                         btn.classList.add('rematch-agree-pulse');
                     });
                 }
+            }
+            if (dockChanged) {
+                adjustViewportScale();
             }
         }
 

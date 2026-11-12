@@ -489,18 +489,20 @@
 
         /* ================= THANH ĐIỀU KHIỂN DƯỚI CÙNG (DOCK MỎNG GỌN 1 HÀNG, TÁCH BIỆT SÀN ĐẤU) ================= */
         #bottom-control-dock {
-            width: 660px;
+            min-width: 660px;
+            width: max-content;
             background: #131c2e;
             border: 2px solid #38bdf8;
             border-radius: 10px;
-            padding: 6px 12px;
+            padding: 6px 14px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 8px;
+            gap: 12px;
             box-shadow: 0 5px 0 #060911, 0 10px 20px rgba(0,0,0,0.7);
             z-index: 60;
             flex-shrink: 0;
+            transition: all 0.18s ease;
         }
 
         .dock-info {
@@ -509,6 +511,7 @@
             align-items: flex-start;
             min-width: 125px;
             line-height: 1.15;
+            flex-shrink: 0;
         }
 
         #my-role-display {
@@ -518,13 +521,14 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 145px;
+            max-width: 160px;
         }
 
         #phase-hint {
             font-size: 10px;
             color: #94a3b8;
             font-weight: 700;
+            white-space: nowrap;
         }
 
         .dock-dots-wrap {
@@ -536,6 +540,8 @@
             padding: 5px 9px;
             border-radius: 6px;
             border: 1px solid #334155;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
 
         .action-dots {
@@ -563,6 +569,7 @@
             gap: 6px;
             flex: 1;
             justify-content: flex-end;
+            flex-shrink: 0;
         }
 
         .dock-btn {
@@ -782,8 +789,8 @@
             border-top: 1px solid #334155;
             display: flex;
             flex-wrap: wrap;
-            gap: 4px;
-            max-height: 74px;
+            gap: 5px;
+            max-height: 135px;
             overflow-y: auto;
         }
 
