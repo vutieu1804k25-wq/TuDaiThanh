@@ -18,21 +18,23 @@ Repository này được tổ chức theo tiêu chuẩn phát triển phần m�
 ```text
 TuDaiThanh/
 ├── src/                                  # 📂 THƯ MỤC MÃ NGUỒN GỐC (DÀNH CHO BAN GIÁM KHẢO)
-│   ├── ui.html                           # Toàn bộ mã nguồn giao diện HTML5, bố cục DOM & CSS Styling
+│   ├── ui.html                           # Toàn bộ mã nguồn giao diện HTML5 & bố cục DOM
+│   ├── style.css                         # Toàn bộ định dạng CSS Styling (màu sắc, hoạt ảnh, responsive)
 │   └── game.js                           # Logic cốt lõi: Kết nối Firebase, Three.js 3D, phân giải lượt đấu
 │
 ├── assets/                               # 📂 Bản đóng gói Production (Tối ưu hóa & Mã hóa bảo mật)
 │   ├── index-CrGW0zpE.js                 # JS Bundle đã được mã hóa luồng, đóng gói DOM động và logic
-│   └── index-D0Je_Ieh.css                 # CSS đã được minified tối đa tốc độ tải trang
+│   └── index-D0Je_Ieh.css                # CSS đã được minified tối đa tốc độ tải trang
 │
 ├── index.html                            # Cổng nạp ứng dụng chuẩn SPA (Single Page Application - 18 dòng)
 ├── favicon.svg                           # Biểu tượng Vector chính thức của Tứ Đại Thành
 ├── firestore.rules                       # Hệ thống Security Rules bảo mật cấp cơ sở dữ liệu trên Firebase
+├── .gitattributes                        # Cấu hình thống kê ngôn ngữ (HTML, CSS, JS) cho GitHub
 └── README.md                             # Tài liệu giới thiệu và hướng dẫn dự án
 ```
 
 > 🔍 **Lưu ý**  
-> Toàn bộ logic thuật toán, phân giải sát thương, xử lý bất đồng bộ và cơ chế bảo mật nguyên bản được trình bày chi tiết, có chú thích đầy đủ tại thư mục **[`src/`](./src/)** (bao gồm [`src/ui.html`](./src/ui.html) và [`src/game.js`](./src/game.js)).
+> Toàn bộ logic thuật toán, phân giải sát thương, xử lý bất đồng bộ và cơ chế bảo mật nguyên bản được trình bày chi tiết, có chú thích đầy đủ tại thư mục **[`src/`](./src/)** (bao gồm [`src/ui.html`](./src/ui.html), [`src/style.css`](./src/style.css) và [`src/game.js`](./src/game.js)).
 
 ---
 
