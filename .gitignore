@@ -1,7 +1,10 @@
-# File mã nguồn gốc chưa mã hóa (giữ bí mật trên máy cá nhân)
-game.js
-index*.html
-!index.html
+# File mã nguồn gốc ở thư mục gốc (giữ bí mật trên máy cá nhân)
+/game.js
+/index*.html
+!/index.html
+
+# Cho phép thư mục src/ chứa code gốc cho Ban Giám Khảo
+!/src/
 
 # File tạm và scratch
 scratch/
